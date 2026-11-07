@@ -1,3 +1,6 @@
 .godot/
 exports/
 .DS_Store
+build/
+*.keystore
+*.jks
