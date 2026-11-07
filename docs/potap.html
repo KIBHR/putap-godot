@@ -124,6 +124,11 @@
 				<canvas id='canvas' width='256' height='256' tabindex='0'>
 					HTML5 canvas is not supported in this browser.
 				</canvas>
+				<div id='game-start' hidden aria-label='Выбор игры'>
+					<p>Potap — выберите действие</p>
+					<button id='continue-game' type='button' disabled>▶ Продолжить сохранение (C)</button>
+					<button id='new-game' type='button' disabled>★ Новая игра (Space)</button>
+				</div>
 				<div id='game-paused' role='status' hidden>ПАУЗА</div>
 				<div id='game-stopped' role='status' hidden>
 					Игра завершена. Чтобы начать заново, обновите страницу.
@@ -135,7 +140,16 @@
 			<button id='fullscreen-mode' type='button' title='Развернуть игру на весь экран'>⛶ На весь экран</button>
 			<button id='pause-game' type='button' disabled title='Приостановить или продолжить игру (P)'>⏸ Пауза (P)</button>
 			<button id='toggle-audio' type='button' disabled title='Включить или выключить игровые звуки (M)'>♫ Музыка: ВКЛ (M)</button>
+			<button id='save-game' type='button' disabled title='Сохранить состояние игры (F5)'>💾 Сохранить (F5)</button>
+			<button id='load-game' type='button' disabled title='Загрузить сохранение (F9)'>▣ Загрузить (F9)</button>
+			<button id='show-help' type='button' title='Показать все клавиши (H)'>? Клавиши (H)</button>
 			<button id='close-game' type='button' disabled title='Завершить игру без закрытия вкладки (Esc)'>× Выход (Esc)</button>
+			<section id='controls-help' hidden aria-label='Управление игрой'>
+				<strong>Клавиши:</strong> ← / → или A / D — идти; ↓ / S — вставить ключ / открыть блок;
+				Space, Shift, Ctrl, Alt — прыжок; Enter — экран/окно; Esc — выйти;
+				P — пауза; M — звук; F5 — сохранить; F9 — загрузить;
+				C — продолжить, Space — новая игра на стартовом экране; H — справка.
+			</section>
 			<p id='game-message' role='status' aria-live='polite'></p>
 		</nav>
 	</main>
