@@ -19,6 +19,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - name: Test local Web launch
+        run: |
+          python3 -m py_compile tools/serve_web.py tools/test_web_server.py
+          python3 tools/test_web_server.py
       - name: Install Godot editor
         run: bash .github/scripts/setup-godot.sh
       - name: Import project
