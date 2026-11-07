@@ -141,7 +141,9 @@
     "a", "d", "w", "s"
   ]);
   toolbar.addEventListener("keydown", (event) => {
-    if (closed || !GAME_KEYS.has(event.key.toLowerCase().length === 1 && event.key !== " " ? event.key.toLowerCase() : event.key)) return;
+    const key = event.key.length === 1 && event.key !== " "
+      ? event.key.toLowerCase() : event.key;
+    if (closed || !GAME_KEYS.has(key)) return;
     event.preventDefault();
     canvas.focus();
   });
