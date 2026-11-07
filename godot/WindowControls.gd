@@ -156,7 +156,11 @@ func _input(event: InputEvent) -> void:
 	var key_event := event as InputEventKey
 	if not key_event.pressed or key_event.echo:
 		return
-	match key_event.keycode:
+	# Use physical P/M positions too, so Russian keyboard layout works.
+	var key := key_event.keycode
+	if key_event.physical_keycode == KEY_P or key_event.physical_keycode == KEY_M:
+		key = key_event.physical_keycode
+	match key:
 		KEY_ENTER, KEY_KP_ENTER:
 			_toggle_fullscreen()
 		KEY_ESCAPE:
