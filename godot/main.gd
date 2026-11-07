@@ -2,6 +2,8 @@ extends Node2D
 
 const SAVE_PATH := "user://potap-save.json"
 const SAVE_VERSION := 1
+# Overridable in tests so smoke tests never overwrite the player's real save.
+var save_path: String = SAVE_PATH
 var web_save_callbacks: Array = []
 
 @onready var tilemap: TileMapLayer = $TileMap
@@ -862,12 +864,14 @@ func _save_snapshot() -> Dictionary:
 func save_game() -> bool:
 	if game_mode != GM_ROUND:
 		return false
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var file := FileAccess.open(save_path, FileAccess.WRITE)
 	if file == null:
 		push_warning("Cannot open save file: %s" % FileAccess.get_open_error())
 		return false
 	var ok: bool = file.store_string(JSON.stringify(_save_snapshot()))
 	file.close()
+	if ok and OS.has_feature("web"):
+		JavaScriptBridge.force_fs_sync()
 	_update_save_ui("Сохранено" if ok else "Ошибка сохранения")
 	return ok
 
@@ -955,9 +959,9 @@ func _is_save_valid(data: Variant) -> bool:
 
 
 func _read_saved_game() -> Dictionary:
-	if not FileAccess.file_exists(SAVE_PATH):
+	if not FileAccess.file_exists(save_path):
 		return {}
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var file := FileAccess.open(save_path, FileAccess.READ)
 	if file == null:
 		return {}
 	var contents := file.get_as_text()
