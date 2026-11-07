@@ -1,0 +1,133 @@
+name: Build and export Potap
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Godot 4.7.2 smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot editor
+        run: bash .github/scripts/setup-godot.sh
+      - name: Import project
+        run: '"$GODOT" --headless --editor --path godot --import --quit'
+      - name: Run smoke tests
+        run: '"$GODOT" --headless --path godot --script res://tests/smoke_test.gd'
+
+  desktop-web:
+    name: Windows, Linux, Web
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot and export templates
+        run: bash .github/scripts/setup-godot.sh --templates
+      - name: Export desktop and Web
+        run: bash .github/scripts/export-desktop-web.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: potap-windows-x86_64
+          path: godot/build/windows/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: potap-linux-x86_64
+          path: godot/build/linux/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: potap-web
+          path: godot/build/web/
+          if-no-files-found: error
+
+  macos-ios:
+    name: macOS and iOS Xcode project
+    needs: test
+    runs-on: macos-latest
+    timeout-minutes: 55
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot and export templates
+        run: bash .github/scripts/setup-godot.sh --templates
+      - name: Export macOS and optional iOS project
+        run: bash .github/scripts/export-apple.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: potap-macos-universal
+          path: godot/build/macos/Potap.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: ${{ env.APPLE_TEAM_ID != '' }}
+        with:
+          name: potap-ios-xcode
+          path: godot/build/ios/Potap.zip
+          if-no-files-found: error
+
+  android:
+    name: Android debug APK
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "build-tools;35.0.1" "platforms;android-35" "cmdline-tools;latest" "cmake;3.10.2.4988404" "ndk;28.1.13356709"
+      - name: Install Godot and export templates
+        run: bash .github/scripts/setup-godot.sh --templates
+      - name: Export Android APK
+        run: bash .github/scripts/export-android.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: potap-android-debug
+          path: godot/build/android/Potap-debug.apk
+          if-no-files-found: error
+
+  publish-web:
+    name: Update GitHub Pages docs/ bundle
+    needs: [test, desktop-web]
+    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: potap-web
+          path: web-out
+      - name: Update public Web build
+        run: |
+          cp -R web-out/. docs/
+          # Preserve the static index page GitHub Pages expects.
+          cp docs/potap.html docs/index.html
+          test -s docs/potap.pck
+          test -s docs/potap.wasm
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          if ! git diff --staged --quiet; then
+            git commit -m "build: refresh Godot Web export [skip ci]"
+            git push
+          fi
