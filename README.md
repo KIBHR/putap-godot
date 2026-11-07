@@ -21,7 +21,13 @@ manual **save (F5)** / **load (F9)**, and a title-screen choice to
 **Enter** toggles fullscreen, **Esc** exits, **P** pauses, and **M** toggles sound.
 For gameplay, use **left/right or A/D**, **down or S**, and **Space** to jump.
 
-**Note:** the checked-in `docs/potap.pck` is an older Web export. The new
-save/load functions require exporting the Godot project to Web again;
-HTML save/load buttons remain disabled until that rebuild is deployed.
-See [Godot project instructions](godot/README.md) for details.
+**Web launch (macOS, Windows, Linux):** do not double-click
+`docs/potap.html` or open it using `file://`; Godot needs an HTTP
+server to load the game package and WebAssembly. Run
+`bash play-web.sh` on macOS/Linux, or `play-web.bat` on Windows
+(with Python 3 installed). Alternatively use
+`python3 tools/serve_web.py` and visit
+[http://127.0.0.1:8000/potap.html](http://127.0.0.1:8000/potap.html).
+The `docs/` browser export is built automatically from the current
+Godot source by GitHub Actions. See [Godot instructions](godot/README.md)
+for export and local launch details.
