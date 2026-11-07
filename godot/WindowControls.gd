@@ -70,6 +70,9 @@ func _ready() -> void:
 	add_button(window_row, "Окно F10", "Оконный режим", _set_windowed)
 	add_button(window_row, "Экран Enter", "Полноэкранный режим (Enter)", _set_fullscreen)
 	add_button(window_row, "Выход Esc", "Закрыть игру (Esc)", _close_game)
+	# Phones have no windowed mode; keep save/pause/audio actions usable.
+	if OS.has_feature("android") or OS.has_feature("ios"):
+		window_row.visible = false
 
 	var options_row := HBoxContainer.new()
 	options_row.custom_minimum_size.y = 16.0
@@ -115,7 +118,7 @@ func _ready() -> void:
 	_update_state_labels()
 	if Engine.is_embedded_in_editor():
 		status_label.text = "Отключите Embed Game для полного экрана"
-	else:
+	elif not (OS.has_feature("android") or OS.has_feature("ios")):
 		call_deferred("_center_window")
 
 

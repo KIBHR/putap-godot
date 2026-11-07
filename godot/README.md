@@ -155,3 +155,67 @@ Godot 4.7.2 в Web (с поддержкой JavaScriptBridge), перенеси�
 HTML-обвязки `index.html`, `potap.html`, `potap-ui.js`,
 `potap-ui.css`. В браузере F5 может перезагружать страницу — надёжнее
 пользоваться кнопкой «Сохранить».
+
+## Экспорт Godot 4.7.2 для всех основных платформ
+
+В `export_presets.cfg` подготовлены пресеты для Windows (x86_64), Linux
+(x86_64), macOS (universal), браузера Web, Android (armeabi-v7a и arm64-v8a)
+и iOS. Нужны официальные шаблоны экспорта **точно версии 4.7.2**.
+Сборки автоматизированы в `.github/workflows/build.yml`; результаты можно
+скачать как **Artifacts** в успешном запуске GitHub Actions.
+
+| Платформа | Пресет | Выходной файл | Дополнительно |
+| --- | --- | --- | --- |
+| Windows 64-bit | Windows Desktop | `build/windows/Potap.exe` | Без подписи |
+| Linux 64-bit | Linux | `build/linux/Potap.x86_64` | Выставить флаг исполняемого файла |
+| macOS Intel / Apple Silicon | macOS | `build/macos/Potap.zip` | Для публичной раздачи понадобятся Apple signing/notarization |
+| Web | Web | `build/web/potap.html` и соседние файлы | Веб-сервер, публикация файлов вместе |
+| Android | Android | `build/android/Potap-debug.apk` | Отладочная подпись, для публикации нужен собственный keystore |
+| iOS | iOS | `build/ios/Potap.zip` | Xcode-проект; настоящая подпись / IPA требуют Apple Developer |
+
+**iOS:** на macOS с Xcode запустите `.github/scripts/export-apple.sh`.
+Если `APPLE_TEAM_ID` не задан, скрипт использует значение-заглушку
+`UNSIGNED00` исключительно для генерации проекта. **Не пытайтесь
+публиковать такой проект без настройки действующего Team ID, сертификатов,
+provisioning profile и Bundle ID**. Для автоматической генерации с
+реальным Team ID задайте GitHub Actions secret `APPLE_TEAM_ID`.
+
+**Android:** нужен OpenJDK 17, Android SDK и официальные шаблоны. Скрипт
+`.github/scripts/export-android.sh` создаёт APK с отладочной подписью.
+Для Google Play требуется Android App Bundle (AAB), персональный ключ
+релизной подписи и настройка экспорта согласно документации Godot.
+Секретные ключи не коммитить.
+
+**Web:** используется `web_shell.html`, поэтому после каждого
+экспорта сохраняются оригинальная пиксельная графика, панель управления,
+подсказки, пауза и кнопки сохранения/загрузки. Скрипт
+`.github/scripts/export-desktop-web.sh` кладёт в `build/web/`
+`potap.html`, `index.html`, JS/WASM/PCK и `potap-ui.css/js`.
+При слиянии в `main` успешный GitHub Actions обновляет `docs/` для
+публикации через GitHub Pages (если включена публикация из этой папки).
+
+Сохранения в каждой платформе хранятся в своей пользовательской папке
+(`user://potap-save.json`), а в браузере — в хранилище соответствующего
+сайта; они **не синхронизируются между ОС автоматически**.
+На Android/iOS есть экранные мультитач-кнопки движения, действия и прыжка,
+так что аппаратная клавиатура не обязательна.
+
+Для ручного экспорта после импорта проекта выполните команды из
+папки `godot/` (нужен Godot 4.7.2 с export templates):
+
+```sh
+godot --headless --editor --import --quit
+godot --headless --script res://tests/smoke_test.gd
+godot --headless --export-release "Windows Desktop" build/windows/Potap.exe
+godot --headless --export-release Linux build/linux/Potap.x86_64
+godot --headless --export-release macOS build/macos/Potap.zip
+godot --headless --export-release Web build/web/potap.html
+# Android (нужны Android SDK и debug key):
+godot --headless --export-debug Android build/android/Potap-debug.apk
+# iOS — на macOS + Xcode и с настроенным Team ID:
+godot --headless --export-debug iOS build/ios/Potap.zip
+```
+
+Пути `build/` исключены из Git. Загрузите соответствующий Artifact в
+GitHub Actions или экспортируйте локально, прежде чем распространять
+исполняемый файл.
