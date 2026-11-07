@@ -126,7 +126,23 @@ func add_button(bar: HBoxContainer, caption: String, hint: String, action: Calla
 	# Avoid arrow/Space gameplay accidentally activating Exit or Save.
 	button.focus_mode = Control.FOCUS_NONE
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.custom_minimum_size.y = 16.0
 	button.add_theme_font_size_override("font_size", 9)
+	# Compact button margins keep all three rows below the 24-tile level.
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.14, 0.20, 0.32)
+	normal.border_color = Color(0.38, 0.48, 0.65)
+	normal.set_border_width_all(1)
+	normal.content_margin_left = 1.0
+	normal.content_margin_right = 1.0
+	normal.content_margin_top = 1.0
+	normal.content_margin_bottom = 1.0
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color(0.22, 0.31, 0.47)
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("disabled", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", hover)
 	button.pressed.connect(action)
 	bar.add_child(button)
 	return button
