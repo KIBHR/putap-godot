@@ -116,6 +116,9 @@
 <link id='-gd-engine-icon' rel='icon' type='image/png' href='potap.icon.png' />
 <link rel='apple-touch-icon' href='potap.apple-touch-icon.png'/>
 
+<link id="-gd-engine-icon" rel="icon" type="image/png" href="potap.icon.png" />
+<link rel="apple-touch-icon" href="potap.apple-touch-icon.png"/>
+
 </head>
 <body>
 	<main id='game-shell'>
@@ -172,7 +175,9 @@
 	<script src='potap-ui.js'></script>
 	<script type='text/javascript'>//<![CDATA[
 
-		const GODOT_CONFIG = {"args":[],"canvasResizePolicy":0,"executable":"potap","experimentalVK":false,"fileSizes":{"potap.pck":80080,"potap.wasm":13788612},"focusCanvas":true,"gdnativeLibs":[]};
+		const GODOT_CONFIG = {"args":[],"canvasResizePolicy":0,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"potap","experimentalVK":false,"fileSizes":{"potap.pck":90116,"potap.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+        // Keep the canvas at the game's native 256x256; CSS performs scaling.
+        GODOT_CONFIG.canvasResizePolicy = 0;
 		GODOT_CONFIG.onExit = function () { if (window.potapOnExit) window.potapOnExit(); };
 		var engine = new Engine(GODOT_CONFIG);
 
@@ -280,4 +285,5 @@
 	//]]></script>
 </body>
 </html>
+
 
