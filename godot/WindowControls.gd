@@ -52,13 +52,14 @@ func _close_game() -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if OS.has_feature("web") or not event is InputEventKey:
 		return
-	if not event.pressed or event.echo:
+	var key_event := event as InputEventKey
+	if not key_event.pressed or key_event.echo:
 		return
-	if event.keycode == KEY_F11:
+	if key_event.keycode == KEY_F11:
 		_set_fullscreen()
-	elif event.keycode == KEY_F10 or (event.keycode == KEY_ESCAPE and get_window().mode == Window.MODE_FULLSCREEN):
+	elif key_event.keycode == KEY_F10 or (key_event.keycode == KEY_ESCAPE and get_window().mode == Window.MODE_FULLSCREEN):
 		_set_windowed()
-	elif event.keycode == KEY_Q and event.ctrl_pressed:
+	elif key_event.keycode == KEY_Q and key_event.ctrl_pressed:
 		_close_game()
 	else:
 		return
