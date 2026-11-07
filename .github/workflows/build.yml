@@ -88,10 +88,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Use Android SDK preinstalled on GitHub runner
-        run: |
-          echo "ANDROID_HOME=${ANDROID_HOME:-/usr/local/lib/android/sdk}" >> "$GITHUB_ENV"
-          sdkmanager --version
+      - name: Install Android SDK command-line tools
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ''
+          log-accepted-android-sdk-licenses: 'false'
       - name: Install Android SDK packages
         run: |
           yes | sdkmanager --licenses >/dev/null || true
