@@ -44,6 +44,10 @@ func add_button(bar: HBoxContainer, caption: String, hint: String, action: Calla
 	var button := Button.new()
 	button.text = caption
 	button.tooltip_text = hint
+	# Gameplay uses arrows and Space, which otherwise navigate and press
+	# focused Godot buttons (including the Exit button).
+	# These controls remain clickable with the mouse.
+	button.focus_mode = Control.FOCUS_NONE
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.add_theme_font_size_override("font_size", 11)
 	button.pressed.connect(action)
