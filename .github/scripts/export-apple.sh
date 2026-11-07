@@ -33,4 +33,13 @@ s = s.replace('application/app_store_team_id=""', f'application/app_store_team_i
 p.write_text(s)
 PY
 "$GODOT" --headless --path . --export-debug iOS build/ios/Potap.zip
+# Godot's iOS exporter generates an Xcode project DIRECTORY, even when
+# an export filename is supplied. Archive that directory for download.
+if [[ ! -s build/ios/Potap.zip ]]; then
+  (
+    cd build/ios
+    zip -qr Potap.zip . -x Potap.zip
+  )
+fi
 test -s build/ios/Potap.zip
+test -d build/ios/Potap.xcodeproj
