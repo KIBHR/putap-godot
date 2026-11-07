@@ -11,6 +11,13 @@
   const windowButton = document.getElementById("window-mode");
   const fullscreenButton = document.getElementById("fullscreen-mode");
   const closeButton = document.getElementById("close-game");
+  const saveButton = document.getElementById("save-game");
+  const loadButton = document.getElementById("load-game");
+  const newButton = document.getElementById("new-game");
+  const continueButton = document.getElementById("continue-game");
+  const startPanel = document.getElementById("game-start");
+  const helpButton = document.getElementById("show-help");
+  const helpPanel = document.getElementById("controls-help");
   const pauseButton = document.getElementById("pause-game");
   const audioButton = document.getElementById("toggle-audio");
   const pauseOverlay = document.getElementById("game-paused");
@@ -20,6 +27,7 @@
   let closed = false;
   let paused = false;
   let audioEnabled = true;
+  let helpAutoPaused = false;
   let gameAudioContext = null;
   let masterGain = null;
 
@@ -142,6 +150,59 @@
     }
   }
 
+  // Updated Web builds expose these events from GDScript. Old potap.pck
+  // files cannot save the game; show controls but do not offer fake saves.
+  function syncSaveButtons() {
+    const state = window.potapSaveState || {};
+    const bridge = window.potapBridgeReady === true;
+    const ready = bridge && !!window.potapGameReady && !closed;
+    saveButton.disabled = !ready || !state.can_save;
+    loadButton.disabled = !ready || !state.has_save;
+    continueButton.disabled = !ready || !state.has_save;
+    newButton.disabled = !ready;
+    startPanel.hidden = !ready || !state.at_title;
+    if (state.message && state.message !== window.potapLastSaveMessage) {
+      window.potapLastSaveMessage = state.message;
+      showMessage(state.message);
+    }
+  }
+  window.potapUpdateSaveControls = syncSaveButtons;
+
+  function sendSaveAction(name) {
+    if (closed || !window.potapGameReady || !window.potapBridgeReady) {
+      showMessage("Для сохранений нужна обновлённая Web-сборка игры.");
+      return;
+    }
+    if ((name === "potap-load" || name === "potap-new" || name === "potap-continue") && paused) {
+      togglePause();
+    }
+    if (name !== "potap-save" && !helpPanel.hidden) {
+      helpPanel.hidden = true;
+      helpAutoPaused = false;
+    }
+    window.dispatchEvent(new Event(name));
+    canvas.focus();
+  }
+
+  function toggleHelp() {
+    if (closed) return;
+    if (helpPanel.hidden) {
+      helpPanel.hidden = false;
+      helpAutoPaused = false;
+      if (window.potapGameReady && !paused) {
+        togglePause();
+        helpAutoPaused = paused;
+      }
+    } else {
+      helpPanel.hidden = true;
+      if (helpAutoPaused && paused) togglePause();
+      helpAutoPaused = false;
+    }
+    helpButton.setAttribute("aria-expanded", String(!helpPanel.hidden));
+    resizeGame();
+    canvas.focus();
+  }
+
   function fullscreenElement() {
     return document.fullscreenElement || document.webkitFullscreenElement || null;
   }
@@ -170,6 +231,7 @@
     fullscreenButton.disabled = closed;
     closeButton.disabled = closed || !window.potapGameReady;
     syncPlaybackButtons();
+    syncSaveButtons();
     windowButton.setAttribute("aria-pressed", String(!full));
     fullscreenButton.setAttribute("aria-pressed", String(full));
     resizeGame();
@@ -250,6 +312,9 @@
     paused = false;
     canvas.style.visibility = "hidden";
     stopped.hidden = false;
+    startPanel.hidden = true;
+    helpPanel.hidden = true;
+    syncSaveButtons();
     showMessage("");
     syncButtons();
   }
@@ -278,7 +343,8 @@
 
   // Mouse use of toolbar controls must not leave keyboard focus on a
   // button. In particular, Space must keep jumping after any toolbar click.
-  for (const button of [windowButton, fullscreenButton, closeButton, pauseButton, audioButton]) {
+  for (const button of [windowButton, fullscreenButton, closeButton, pauseButton, audioButton,
+                        saveButton, loadButton, newButton, continueButton, helpButton]) {
     button.addEventListener("mousedown", (event) => {
       event.preventDefault();
       if (!closed) canvas.focus();
@@ -290,6 +356,11 @@
   pauseButton.addEventListener("click", togglePause);
   audioButton.addEventListener("click", toggleAudio);
   closeButton.addEventListener("click", closeGame);
+  saveButton.addEventListener("click", () => sendSaveAction("potap-save"));
+  loadButton.addEventListener("click", () => sendSaveAction("potap-load"));
+  continueButton.addEventListener("click", () => sendSaveAction("potap-continue"));
+  newButton.addEventListener("click", () => sendSaveAction("potap-new"));
+  helpButton.addEventListener("click", toggleHelp);
 
   // Handle shortcuts before Godot or an HTML button receives them. Enter
   // and Esc are reserved for the window and exit; P and M are options.
@@ -313,6 +384,32 @@
       event.preventDefault();
       event.stopPropagation();
       toggleAudio();
+    } else if (event.code === "KeyH" || event.key.toLowerCase() === "h") {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleHelp();
+    } else if (event.key === "F5") {
+      if (window.potapBridgeReady) {
+        event.preventDefault();
+        event.stopPropagation();
+        sendSaveAction("potap-save");
+      }
+    } else if (event.key === "F9") {
+      if (window.potapBridgeReady) {
+        event.preventDefault();
+        event.stopPropagation();
+        sendSaveAction("potap-load");
+      }
+    } else if ((event.code === "KeyC" || event.key.toLowerCase() === "c") &&
+               window.potapSaveState?.at_title) {
+      event.preventDefault();
+      event.stopPropagation();
+      sendSaveAction("potap-continue");
+    } else if ((event.code === "KeyN" || event.key.toLowerCase() === "n") &&
+               window.potapSaveState?.at_title) {
+      event.preventDefault();
+      event.stopPropagation();
+      sendSaveAction("potap-new");
     }
   }, true);
 
