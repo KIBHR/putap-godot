@@ -176,6 +176,8 @@
     if ((name === "potap-load" || name === "potap-new" || name === "potap-continue") && paused) {
       togglePause();
     }
+    // Allow repeated Save/Load actions to display a fresh confirmation.
+    window.potapLastSaveMessage = "";
     if (name !== "potap-save" && !helpPanel.hidden) {
       helpPanel.hidden = true;
       helpAutoPaused = false;
