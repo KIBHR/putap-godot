@@ -21,9 +21,25 @@
   let paused = false;
   let audioEnabled = true;
   let gameAudioContext = null;
+  let masterGain = null;
 
-  // Capture the AudioContext before Godot starts. This allows the existing
-  // published Web export to mute audio without modifying its .pck or .wasm.
+  // Intercept the connection of the Godot Web Audio output to the speakers.
+  // A dedicated GainNode mutes audio reliably, even when Godot automatically
+  // resumes AudioContext after a keyboard/mouse gesture.
+  const audioNodePrototype = window.AudioNode && window.AudioNode.prototype;
+  if (audioNodePrototype && typeof audioNodePrototype.connect === "function") {
+    const originalConnect = audioNodePrototype.connect;
+    audioNodePrototype.connect = function (destination, ...options) {
+      if (masterGain && this !== masterGain &&
+          this.context === gameAudioContext &&
+          destination === gameAudioContext.destination) {
+        return originalConnect.call(this, masterGain, ...options);
+      }
+      return originalConnect.call(this, destination, ...options);
+    };
+  }
+
+  // Install before Godot starts, without modifying generated .pck/.wasm.
   for (const name of ["AudioContext", "webkitAudioContext"]) {
     const NativeContext = window[name];
     if (typeof NativeContext !== "function") continue;
@@ -32,6 +48,12 @@
         constructor(...args) {
           super(...args);
           gameAudioContext = this;
+          masterGain = null;
+          if (audioNodePrototype && typeof this.createGain === "function") {
+            masterGain = this.createGain();
+            masterGain.gain.value = 1;
+            masterGain.connect(this.destination);
+          }
         }
       };
     } catch (error) {
@@ -40,9 +62,14 @@
   }
 
   function applyAudioState() {
+    const audible = audioEnabled && !paused;
+    if (masterGain) {
+      masterGain.gain.value = audible ? 1 : 0;
+      return;
+    }
     if (!gameAudioContext) return;
-    // The game is silent while paused regardless of the music toggle.
-    const operation = (!audioEnabled || paused) ? "suspend" : "resume";
+    // Compatibility fallback for browsers without AudioNode.connect patch.
+    const operation = audible ? "resume" : "suspend";
     try {
       Promise.resolve(gameAudioContext[operation]()).catch((error) => {
         console.warn("WebAudio " + operation + " rejected:", error);
