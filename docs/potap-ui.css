@@ -32,6 +32,33 @@ body { background: #090d16; color: #e9edf4; font-family: system-ui, -apple-syste
   outline: none;
 }
 #canvas:focus-visible { outline: 2px solid #9bbdff; outline-offset: 2px; }
+#game-start {
+  position: absolute;
+  z-index: 2;
+  left: 5%;
+  right: 5%;
+  bottom: 9%;
+  padding: 10px 6px;
+  border-radius: 6px;
+  border: 1px solid #657dba;
+  background: rgba(15, 24, 43, .94);
+  text-align: center;
+  color: #f6f8ff;
+  font: 600 clamp(9px, 2vw, 14px)/1.2 system-ui, sans-serif;
+}
+#game-start p { margin: 0 0 8px; }
+#game-start button {
+  border: 1px solid #7890cc;
+  border-radius: 4px;
+  background: #2b426b;
+  color: white;
+  cursor: pointer;
+  padding: 7px;
+  margin: 2px;
+  font-size: inherit;
+}
+#game-start button:disabled { opacity: .45; cursor: default; }
+#game-start[hidden] { display: none; }
 #game-paused {
   position: absolute;
   inset: 0;
@@ -90,6 +117,18 @@ body { background: #090d16; color: #e9edf4; font-family: system-ui, -apple-syste
 #game-toolbar button:disabled { opacity: .45; cursor: default; }
 #game-toolbar #close-game { border-color: #875253; background: #543039; }
 #game-toolbar #close-game:hover:not(:disabled) { background: #70404a; }
+#controls-help {
+  box-sizing: border-box;
+  flex: 1 0 100%;
+  padding: 10px 12px;
+  border-radius: 5px;
+  border: 1px solid #677a9b;
+  background: #202b41;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+}
+#controls-help[hidden] { display: none; }
 #game-message {
   flex: 0 1 100%;
   margin: 0;
