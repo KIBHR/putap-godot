@@ -3,9 +3,7 @@
 html, body { height: 100%; margin: 0; }
 body { background: #090d16; color: #e9edf4; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
 #game-shell {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  position: relative;
   width: 100%;
   height: 100vh;
   height: 100dvh;
@@ -13,10 +11,9 @@ body { background: #090d16; color: #e9edf4; font-family: system-ui, -apple-syste
 }
 #game-shell:fullscreen { width: 100%; height: 100%; background: #090d16; }
 #game-view {
+  position: absolute;
+  inset: 0;
   box-sizing: border-box;
-  min-height: 0;
-  width: 100%;
-  flex: 1 1 auto;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -49,8 +46,11 @@ body { background: #090d16; color: #e9edf4; font-family: system-ui, -apple-syste
 }
 #game-stopped[hidden] { display: none; }
 #game-toolbar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
   display: flex;
-  flex: 0 0 auto;
   box-sizing: border-box;
   flex-wrap: wrap;
   align-items: center;
