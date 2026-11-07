@@ -11,11 +11,13 @@ mkdir -p build/macos build/ios
 "$GODOT" --headless --path . --export-release macOS build/macos/Potap.zip
 test -s build/macos/Potap.zip
 
-# An iOS Xcode project can be generated without committing private signing
-# credentials, but Godot still requires an Apple Team ID.
+# Godot insists on a 10-character Team ID even when only exporting an
+# unsigned Xcode project. Use a clearly non-production placeholder when a
+# developer has not yet configured signing credentials.
 if [[ -z "${APPLE_TEAM_ID:-}" ]]; then
-  echo "iOS export skipped: APPLE_TEAM_ID secret is missing."
-  exit 0
+  APPLE_TEAM_ID="UNSIGNED00"
+  export APPLE_TEAM_ID
+  echo "::notice::iOS Xcode project will use placeholder Team ID UNSIGNED00; update the Xcode signing settings before deploying."
 fi
 cp export_presets.cfg "${RUNNER_TEMP:-/tmp}/potap-export-presets-backup.cfg"
 trap 'cp "${RUNNER_TEMP:-/tmp}/potap-export-presets-backup.cfg" export_presets.cfg' EXIT
