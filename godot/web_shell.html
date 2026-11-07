@@ -254,7 +254,9 @@ $GODOT_HEAD_INCLUDE
 				initializing = false;
 			};
 
-			if (!Engine.isWebGLAvailable()) {
+			if (window.location.protocol === 'file:') {
+				displayFailureNotice('Эту игру нельзя запускать через file://.\\nОткройте Терминал в папке putap-godot и выполните:\\npython3 tools/serve_web.py\\nЗатем откройте http://127.0.0.1:8000/potap.html');
+			} else if (!Engine.isWebGLAvailable()) {
 				displayFailureNotice('WebGL not available');
 			} else {
 				setStatusMode('indeterminate');
