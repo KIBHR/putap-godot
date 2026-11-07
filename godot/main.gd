@@ -910,6 +910,10 @@ func _is_save_valid(data: Variant) -> bool:
 		return false
 	if int(save["player_xy"][1]) < 0 or int(save["player_xy"][1]) > 20:
 		return false
+	if int(save["exit_xy"][0]) < 0 or int(save["exit_xy"][0]) > 30:
+		return false
+	if int(save["exit_xy"][1]) < 0 or int(save["exit_xy"][1]) > 20:
+		return false
 	var saved_screen = save.get("screen")
 	if typeof(saved_screen) != TYPE_ARRAY or saved_screen.size() != 32:
 		return false
@@ -934,8 +938,11 @@ func _is_save_valid(data: Variant) -> bool:
 	var saved_animations = save.get("animations")
 	if typeof(saved_animations) != TYPE_ARRAY or saved_animations.size() != 2:
 		return false
-	for animation in saved_animations:
+	for index in saved_animations.size():
+		var animation = saved_animations[index]
 		if typeof(animation) != TYPE_ARRAY or animation.size() < 1:
+			return false
+		if int(animation[0]) != 0 and animation.size() < (2 if index == 0 else 4):
 			return false
 		for value in animation:
 			if typeof(value) not in [TYPE_INT, TYPE_FLOAT]:
@@ -955,7 +962,7 @@ func _is_save_valid(data: Variant) -> bool:
 			return false
 		if typeof(sprite["visible"]) != TYPE_BOOL or typeof(sprite["tint"]) != TYPE_STRING:
 			return false
-	return typeof(save.get("rng_state")) == TYPE_STRING
+	return typeof(save.get("rng_state")) == TYPE_STRING and String(save["rng_state"]).is_valid_int()
 
 
 func _read_saved_game() -> Dictionary:
@@ -967,7 +974,9 @@ func _read_saved_game() -> Dictionary:
 	var contents := file.get_as_text()
 	file.close()
 	var parsed: Variant = JSON.parse_string(contents)
-	return parsed if _is_save_valid(parsed) else {}
+	if not _is_save_valid(parsed):
+		return {}
+	return parsed as Dictionary
 
 
 func has_saved_game() -> bool:
