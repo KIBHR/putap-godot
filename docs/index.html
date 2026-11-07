@@ -124,6 +124,7 @@
 				<canvas id='canvas' width='256' height='256' tabindex='0'>
 					HTML5 canvas is not supported in this browser.
 				</canvas>
+				<div id='game-paused' role='status' hidden>ПАУЗА</div>
 				<div id='game-stopped' role='status' hidden>
 					Игра завершена. Чтобы начать заново, обновите страницу.
 				</div>
@@ -132,7 +133,9 @@
 		<nav id='game-toolbar' aria-label='Управление окном игры'>
 			<button id='window-mode' type='button' disabled title='Вернуться из полноэкранного режима'>▣ Оконный режим</button>
 			<button id='fullscreen-mode' type='button' title='Развернуть игру на весь экран'>⛶ На весь экран</button>
-			<button id='close-game' type='button' disabled title='Завершить игру без закрытия вкладки'>× Закрыть игру</button>
+			<button id='pause-game' type='button' disabled title='Приостановить или продолжить игру (P)'>⏸ Пауза (P)</button>
+			<button id='toggle-audio' type='button' disabled title='Включить или выключить игровые звуки (M)'>♫ Музыка: ВКЛ (M)</button>
+			<button id='close-game' type='button' disabled title='Завершить игру без закрытия вкладки (Esc)'>× Выход (Esc)</button>
 			<p id='game-message' role='status' aria-live='polite'></p>
 		</nav>
 	</main>
@@ -152,6 +155,7 @@
 	</div>
 
 	<script type='text/javascript' src='potap.js'></script>
+	<script src='potap-ui.js'></script>
 	<script type='text/javascript'>//<![CDATA[
 
 		const GODOT_CONFIG = {"args":[],"canvasResizePolicy":0,"executable":"potap","experimentalVK":false,"fileSizes":{"potap.pck":80080,"potap.wasm":13788612},"focusCanvas":true,"gdnativeLibs":[]};
@@ -260,7 +264,6 @@
 			}
 		})();
 	//]]></script>
-	<script src='potap-ui.js'></script>
 </body>
 </html>
 
