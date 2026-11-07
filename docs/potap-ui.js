@@ -1,6 +1,7 @@
-/* Web-only presentation controls. The Godot canvas stays at 256x256 internally. */
+/* Browser presentation and window controls for the 256x256 Godot game. */
 (() => {
   "use strict";
+
   const shell = document.getElementById("game-shell");
   const view = document.getElementById("game-view");
   const frame = document.getElementById("game-frame");
@@ -11,52 +12,106 @@
   const fullscreenButton = document.getElementById("fullscreen-mode");
   const closeButton = document.getElementById("close-game");
   const message = document.getElementById("game-message");
+
   const GAME_PIXELS = 256;
   let closed = false;
 
+  function fullscreenElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+
+  function isFullscreen() {
+    return fullscreenElement() === shell;
+  }
+
   function resizeGame() {
     const usableWidth = Math.max(1, view.clientWidth - 24);
-    // Reserve matching space above and below for the bottom toolbar so
-    // the 256x256 playfield remains centered on the actual screen.
+    // Balance the bottom toolbar with equal free space at the top.
     const usableHeight = Math.max(1, view.clientHeight - 2 * toolbar.offsetHeight - 24);
     const maxScale = Math.min(usableWidth, usableHeight) / GAME_PIXELS;
-    const scale = maxScale >= 1 ? Math.floor(maxScale) : maxScale;
+    // Keep pixel-perfect integer scaling in windowed mode; make actual
+    // fullscreen use the available space, even between integer scale steps.
+    const scale = isFullscreen() ? maxScale : (maxScale >= 1 ? Math.floor(maxScale) : maxScale);
     const side = Math.max(1, Math.floor(GAME_PIXELS * scale));
     frame.style.width = side + "px";
     frame.style.height = side + "px";
   }
 
   function syncButtons() {
-    const full = document.fullscreenElement === shell;
-    windowButton.disabled = !full || closed;
-    fullscreenButton.disabled = full || closed;
+    const full = isFullscreen();
+    // Both actions should be clickable, even if the user is already in that mode.
+    windowButton.disabled = closed;
+    fullscreenButton.disabled = closed;
     closeButton.disabled = closed || !window.potapGameReady;
+    windowButton.setAttribute("aria-pressed", String(!full));
+    fullscreenButton.setAttribute("aria-pressed", String(full));
+    resizeGame();
   }
 
-  async function enterFullscreen() {
-    message.textContent = "";
-    try {
-      if (shell.requestFullscreen) {
-        await shell.requestFullscreen();
-      } else {
-        throw new Error("Fullscreen API is unavailable");
-      }
-      canvas.focus();
-    } catch (_) {
-      message.textContent = "Браузер не разрешил полноэкранный режим.";
-    }
-    syncButtons();
+  function showMessage(text) {
+    message.textContent = text;
   }
 
-  async function leaveFullscreen() {
-    message.textContent = "";
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      canvas.focus();
-    } catch (_) {
-      message.textContent = "Не удалось вернуться в оконный режим. Нажмите Esc.";
+  function enterFullscreen() {
+    if (closed) return;
+    showMessage("");
+    if (isFullscreen()) {
+      showMessage("Полноэкранный режим уже включён.");
+      return;
     }
-    syncButtons();
+
+    // The call itself MUST happen synchronously within a user click;
+    // browsers refuse fullscreen requests made after an async delay.
+    const request = shell.requestFullscreen || shell.webkitRequestFullscreen;
+    if (!request) {
+      showMessage("Этот браузер не поддерживает полноэкранный режим для игры.");
+      return;
+    }
+
+    try {
+      Promise.resolve(request.call(shell)).then(() => {
+        syncButtons();
+        canvas.focus();
+      }).catch((error) => {
+        console.warn("Fullscreen request denied:", error);
+        showMessage("Браузер запретил полноэкранный режим. Если игра во встроенном окне, откройте её отдельной вкладкой.");
+        syncButtons();
+      });
+    } catch (error) {
+      console.warn("Fullscreen request failed:", error);
+      showMessage("Не удалось включить полноэкранный режим в этом браузере.");
+      syncButtons();
+    }
+  }
+
+  function leaveFullscreen() {
+    if (closed) return;
+    showMessage("");
+    if (!fullscreenElement()) {
+      showMessage("Оконный режим уже включён.");
+      syncButtons();
+      canvas.focus();
+      return;
+    }
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if (!exit) {
+      showMessage("Нажмите Esc, чтобы выйти из полноэкранного режима.");
+      return;
+    }
+    try {
+      Promise.resolve(exit.call(document)).then(() => {
+        syncButtons();
+        canvas.focus();
+      }).catch((error) => {
+        console.warn("Exit fullscreen failed:", error);
+        showMessage("Нажмите Esc, чтобы выйти из полноэкранного режима.");
+        syncButtons();
+      });
+    } catch (error) {
+      console.warn("Exit fullscreen failed:", error);
+      showMessage("Нажмите Esc, чтобы выйти из полноэкранного режима.");
+      syncButtons();
+    }
   }
 
   function showStopped() {
@@ -65,37 +120,34 @@
     window.potapGameReady = false;
     canvas.style.visibility = "hidden";
     stopped.hidden = false;
-    message.textContent = "";
+    showMessage("");
     syncButtons();
   }
 
   window.potapOnReady = () => {
     window.potapGameReady = true;
     syncButtons();
-    resizeGame();
   };
-  window.potapOnExit = () => {
-    showStopped();
-  };
+
+  window.potapOnExit = showStopped;
 
   fullscreenButton.addEventListener("click", enterFullscreen);
   windowButton.addEventListener("click", leaveFullscreen);
   closeButton.addEventListener("click", () => {
     if (closed) return;
-    // A web page cannot close an ordinary browser tab; stop the Godot instance.
-    try { engine.requestQuit(); } catch (err) { console.warn("Cannot stop game:", err); }
+    try { engine.requestQuit(); } catch (error) { console.warn("Cannot stop game:", error); }
     showStopped();
-    if (document.fullscreenElement === shell) {
-      document.exitFullscreen().catch(() => {});
+    if (fullscreenElement()) {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) {
+        try { Promise.resolve(exit.call(document)).catch(() => {}); } catch (_) { /* ignore */ }
+      }
     }
   });
 
-  document.addEventListener("fullscreenchange", () => {
-    syncButtons();
-    resizeGame();
-  });
+  document.addEventListener("fullscreenchange", syncButtons);
+  document.addEventListener("webkitfullscreenchange", syncButtons);
   window.addEventListener("resize", resizeGame);
   if (typeof ResizeObserver !== "undefined") new ResizeObserver(resizeGame).observe(view);
   syncButtons();
-  resizeGame();
 })();
