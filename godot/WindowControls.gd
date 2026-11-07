@@ -152,7 +152,7 @@ func _update_state_labels() -> void:
 	if is_instance_valid(sound_button):
 		sound_button.text = "Звук M: ВЫКЛ" if is_sound_muted() else "Звук M: ВКЛ"
 	if is_instance_valid(pause_overlay):
-		pause_overlay.visible = get_tree().paused and not help_panel.visible
+		pause_overlay.visible = get_tree().paused and not (is_instance_valid(help_panel) and help_panel.visible)
 
 
 func is_sound_muted() -> bool:
@@ -161,7 +161,7 @@ func is_sound_muted() -> bool:
 
 
 func _toggle_pause() -> void:
-	if get_parent().game_mode != get_parent().GM_ROUND or help_panel.visible:
+	if get_parent().game_mode != get_parent().GM_ROUND or (is_instance_valid(help_panel) and help_panel.visible):
 		return
 	get_tree().paused = not get_tree().paused
 	_update_state_labels()
@@ -183,8 +183,8 @@ func _save_game() -> void:
 
 
 func _load_game() -> void:
+	_close_help()
 	if get_parent().load_game():
-		_close_help()
 		_update_state_labels()
 		status_label.text = "Игра загружена (F9)"
 	else:
