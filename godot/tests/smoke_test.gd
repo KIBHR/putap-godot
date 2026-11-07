@@ -42,6 +42,15 @@ func run() -> void:
 	game.set_process(false)
 	await process_frame
 	check(game.game_mode == game.GM_TITLE, "The title screen must open on startup")
+	# Regression: Space and arrows are gameplay keys, not window-button shortcuts.
+	var controls = game.get_node("WindowControls")
+	var test_toolbar := HBoxContainer.new()
+	for caption in ["Окно", "Весь экран", "Выход"]:
+		controls.add_button(test_toolbar, caption, "", Callable(game, "restart_game"))
+		var button := test_toolbar.get_child(test_toolbar.get_child_count() - 1) as Button
+		check(button.focus_mode == Control.FOCUS_NONE, "Window button %s must not steal arrows or Space" % caption)
+	test_toolbar.free()
+
 	check(game.tilemap.get_used_cells().size() == 1024, "The complete screen must render on startup")
 	check(game.playnik.playback != null and game.playnik.player.playing, "Procedural audio must start")
 	check(load("res://default_env.tres") is Environment, "The migrated environment must load")
