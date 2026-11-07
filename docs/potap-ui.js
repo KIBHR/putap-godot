@@ -54,6 +54,7 @@
 
   function enterFullscreen() {
     if (closed) return;
+    canvas.focus();
     showMessage("");
     if (isFullscreen()) {
       showMessage("Полноэкранный режим уже включён.");
@@ -86,6 +87,7 @@
 
   function leaveFullscreen() {
     if (closed) return;
+    canvas.focus();
     showMessage("");
     if (!fullscreenElement()) {
       showMessage("Оконный режим уже включён.");
@@ -130,6 +132,28 @@
   };
 
   window.potapOnExit = showStopped;
+
+  // Arrow keys navigate the game; Space jumps. Never let a focused
+  // toolbar button turn those inputs into an accidental click ("Exit").
+  const GAME_KEYS = new Set([
+    "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+    " ", "Spacebar", "Shift", "Control", "Alt",
+    "a", "d", "w", "s"
+  ]);
+  toolbar.addEventListener("keydown", (event) => {
+    if (closed || !GAME_KEYS.has(event.key.toLowerCase().length === 1 && event.key !== " " ? event.key.toLowerCase() : event.key)) return;
+    event.preventDefault();
+    canvas.focus();
+  });
+
+  // Mouse use of toolbar controls must not leave keyboard focus on a
+  // button. In particular, Space must keep jumping after any toolbar click.
+  for (const button of [windowButton, fullscreenButton, closeButton]) {
+    button.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      if (!closed) canvas.focus();
+    });
+  }
 
   fullscreenButton.addEventListener("click", enterFullscreen);
   windowButton.addEventListener("click", leaveFullscreen);
