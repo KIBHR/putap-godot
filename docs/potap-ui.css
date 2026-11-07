@@ -32,6 +32,21 @@ body { background: #090d16; color: #e9edf4; font-family: system-ui, -apple-syste
   outline: none;
 }
 #canvas:focus-visible { outline: 2px solid #9bbdff; outline-offset: 2px; }
+#game-paused {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(0, 0, 0, .48);
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font: 700 clamp(18px, 4vw, 34px)/1 system-ui, sans-serif;
+  letter-spacing: .16em;
+  text-shadow: 0 2px 3px black;
+  pointer-events: none;
+}
+#game-paused[hidden] { display: none; }
 #game-stopped {
   position: absolute;
   inset: 0;
