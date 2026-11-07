@@ -1,0 +1,144 @@
+/* Controls and centered, integer-scaled display for the existing Godot web export. */
+:root { color-scheme: dark; }
+html, body { height: 100%; margin: 0; }
+body { background: #090d16; color: #e9edf4; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+#game-shell {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  background: #090d16;
+}
+#game-shell:fullscreen { width: 100%; height: 100%; background: #090d16; }
+#game-view {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  overflow: hidden;
+}
+#game-frame { position: relative; width: 256px; height: 256px; flex: none; }
+#canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: black;
+  color: white;
+  image-rendering: pixelated;
+  outline: none;
+}
+#canvas:focus-visible { outline: 2px solid #9bbdff; outline-offset: 2px; }
+#game-start {
+  position: absolute;
+  z-index: 2;
+  left: 5%;
+  right: 5%;
+  bottom: 9%;
+  padding: 10px 6px;
+  border-radius: 6px;
+  border: 1px solid #657dba;
+  background: rgba(15, 24, 43, .94);
+  text-align: center;
+  color: #f6f8ff;
+  font: 600 clamp(9px, 2vw, 14px)/1.2 system-ui, sans-serif;
+}
+#game-start p { margin: 0 0 8px; }
+#game-start button {
+  border: 1px solid #7890cc;
+  border-radius: 4px;
+  background: #2b426b;
+  color: white;
+  cursor: pointer;
+  padding: 7px;
+  margin: 2px;
+  font-size: inherit;
+}
+#game-start button:disabled { opacity: .45; cursor: default; }
+#game-start[hidden] { display: none; }
+#game-paused {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(0, 0, 0, .48);
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font: 700 clamp(18px, 4vw, 34px)/1 system-ui, sans-serif;
+  letter-spacing: .16em;
+  text-shadow: 0 2px 3px black;
+  pointer-events: none;
+}
+#game-paused[hidden] { display: none; }
+#game-stopped {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #08090d;
+  color: #f1f3f7;
+  text-align: center;
+  padding: 12px;
+  box-sizing: border-box;
+}
+#game-stopped[hidden] { display: none; }
+#game-toolbar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px max(10px, env(safe-area-inset-bottom));
+  background: #151a27;
+  border-top: 1px solid #30394e;
+}
+#game-toolbar button {
+  cursor: pointer;
+  border: 1px solid #53647f;
+  border-radius: 6px;
+  padding: 9px 14px;
+  background: #263248;
+  color: #f4f7fd;
+  font: 600 14px/1.25 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+#game-toolbar button:hover:not(:disabled) { background: #344866; }
+#game-toolbar button:focus-visible { outline: 2px solid #a3c7ff; outline-offset: 2px; }
+#game-toolbar button:disabled { opacity: .45; cursor: default; }
+#game-toolbar #close-game { border-color: #875253; background: #543039; }
+#game-toolbar #close-game:hover:not(:disabled) { background: #70404a; }
+#controls-help {
+  box-sizing: border-box;
+  flex: 1 0 100%;
+  padding: 10px 12px;
+  border-radius: 5px;
+  border: 1px solid #677a9b;
+  background: #202b41;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+}
+#controls-help[hidden] { display: none; }
+#game-message {
+  flex: 0 1 100%;
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  color: #ffc8c8;
+}
+#game-message:empty { display: none; }
+@media (max-height: 360px) {
+  #game-view { padding: 4px; }
+  #game-toolbar { gap: 4px; padding: 4px; }
+  #game-toolbar button { padding: 5px 8px; }
+}

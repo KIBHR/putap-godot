@@ -112,15 +112,47 @@
 			visibility: visible;
 		}
 	</style>
+<link rel='stylesheet' href='potap-ui.css' />
 <link id='-gd-engine-icon' rel='icon' type='image/png' href='potap.icon.png' />
 <link rel='apple-touch-icon' href='potap.apple-touch-icon.png'/>
 
 </head>
 <body>
-	<canvas id='canvas'>
-		HTML5 canvas appears to be unsupported in the current browser.<br />
-		Please try updating or use a different browser.
-	</canvas>
+	<main id='game-shell'>
+		<div id='game-view'>
+			<div id='game-frame'>
+				<canvas id='canvas' width='256' height='256' tabindex='0'>
+					HTML5 canvas is not supported in this browser.
+				</canvas>
+				<div id='game-start' hidden aria-label='Выбор игры'>
+					<p>Potap — выберите действие</p>
+					<button id='continue-game' type='button' disabled>▶ Продолжить сохранение (C)</button>
+					<button id='new-game' type='button' disabled>★ Новая игра (Space)</button>
+				</div>
+				<div id='game-paused' role='status' hidden>ПАУЗА</div>
+				<div id='game-stopped' role='status' hidden>
+					Игра завершена. Чтобы начать заново, обновите страницу.
+				</div>
+			</div>
+		</div>
+		<nav id='game-toolbar' aria-label='Управление окном игры'>
+			<button id='window-mode' type='button' disabled title='Вернуться из полноэкранного режима'>▣ Оконный режим</button>
+			<button id='fullscreen-mode' type='button' title='Развернуть игру на весь экран'>⛶ На весь экран</button>
+			<button id='pause-game' type='button' disabled title='Приостановить или продолжить игру (P)'>⏸ Пауза (P)</button>
+			<button id='toggle-audio' type='button' disabled title='Включить или выключить игровые звуки (M)'>♫ Музыка: ВКЛ (M)</button>
+			<button id='save-game' type='button' disabled title='Сохранить состояние игры (F5)'>💾 Сохранить (F5)</button>
+			<button id='load-game' type='button' disabled title='Загрузить сохранение (F9)'>▣ Загрузить (F9)</button>
+			<button id='show-help' type='button' title='Показать все клавиши (H)'>? Клавиши (H)</button>
+			<button id='close-game' type='button' disabled title='Завершить игру без закрытия вкладки (Esc)'>× Выход (Esc)</button>
+			<section id='controls-help' hidden aria-label='Управление игрой'>
+				<strong>Клавиши:</strong> ← / → или A / D — идти; ↓ / S — вставить ключ / открыть блок;
+				Space, Shift, Ctrl, Alt — прыжок; Enter — экран/окно; Esc — выйти;
+				P — пауза; M — звук; F5 — сохранить; F9 — загрузить;
+				C — продолжить, Space — новая игра на стартовом экране; H — справка.
+			</section>
+			<p id='game-message' role='status' aria-live='polite'></p>
+		</nav>
+	</main>
 	<div id='status'>
 		<div id='status-progress' style='display: none;' oncontextmenu='event.preventDefault();'><div id ='status-progress-inner'></div></div>
 		<div id='status-indeterminate' style='display: none;' oncontextmenu='event.preventDefault();'>
@@ -137,9 +169,11 @@
 	</div>
 
 	<script type='text/javascript' src='potap.js'></script>
+	<script src='potap-ui.js'></script>
 	<script type='text/javascript'>//<![CDATA[
 
-		const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"executable":"potap","experimentalVK":false,"fileSizes":{"potap.pck":79936,"potap.wasm":13788612},"focusCanvas":true,"gdnativeLibs":[]};
+		const GODOT_CONFIG = {"args":[],"canvasResizePolicy":0,"executable":"potap","experimentalVK":false,"fileSizes":{"potap.pck":80080,"potap.wasm":13788612},"focusCanvas":true,"gdnativeLibs":[]};
+		GODOT_CONFIG.onExit = function () { if (window.potapOnExit) window.potapOnExit(); };
 		var engine = new Engine(GODOT_CONFIG);
 
 		(function() {
@@ -239,6 +273,7 @@
 				}).then(() => {
 					setStatusMode('hidden');
 					initializing = false;
+					if (window.potapOnReady) window.potapOnReady();
 				}, displayFailureNotice);
 			}
 		})();

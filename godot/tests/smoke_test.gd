@@ -42,6 +42,15 @@ func run() -> void:
 	game.set_process(false)
 	await process_frame
 	check(game.game_mode == game.GM_TITLE, "The title screen must open on startup")
+	# Regression: Space and arrows are gameplay keys, not window-button shortcuts.
+	var controls = game.get_node("WindowControls")
+	var test_toolbar := HBoxContainer.new()
+	for caption in ["Окно", "Весь экран", "Выход"]:
+		controls.add_button(test_toolbar, caption, "", Callable(game, "restart_game"))
+		var button := test_toolbar.get_child(test_toolbar.get_child_count() - 1) as Button
+		check(button.focus_mode == Control.FOCUS_NONE, "Window button %s must not steal arrows or Space" % caption)
+	test_toolbar.free()
+
 	check(game.tilemap.get_used_cells().size() == 1024, "The complete screen must render on startup")
 	check(game.playnik.playback != null and game.playnik.player.playing, "Procedural audio must start")
 	check(load("res://default_env.tres") is Environment, "The migrated environment must load")
@@ -53,6 +62,75 @@ func run() -> void:
 	tick()
 	key(KEY_SPACE, false)
 	check(game.game_mode == game.GM_ROUND and game.level_num == 1, "Space must start the game")
+
+	# Pausing freezes the SceneTree, and the controls can still unpause it.
+	check(controls.process_mode == Node.PROCESS_MODE_ALWAYS, "Controls must process while paused")
+	check(not paused, "SceneTree should start unpaused")
+	controls._toggle_pause()
+	check(paused, "Pause button must pause the game")
+	controls._toggle_pause()
+	check(not paused, "Pressing pause again must resume the game")
+
+	# Sound toggle must affect the actual Master output and be reversible.
+	var master_bus := AudioServer.get_bus_index("Master")
+	if master_bus >= 0:
+		var initially_muted := AudioServer.is_bus_mute(master_bus)
+		controls._toggle_sound()
+		check(AudioServer.is_bus_mute(master_bus) != initially_muted, "Sound button must toggle Master mute")
+		controls._toggle_sound()
+		check(AudioServer.is_bus_mute(master_bus) == initially_muted, "Sound button must restore Master mute")
+
+
+
+	# Save/load tests use their own file, never the player's real save.
+	var old_path: String = game.save_path
+	game.save_path = "user://potap-smoke-test-save.json"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(game.save_path))
+	check(not game.has_saved_game(), "A missing save must not be considered valid")
+
+	game.player_xy = Vector2i(4, 4)
+	game.score = 137
+	game.remaining = 5
+	game.cles = 2
+	game.timer = 67
+	game.set_bigtile(4, 4, 1)
+	game.potap1.position = Vector2(32, 32)
+	game.potap1.visible = true
+	check(game.save_game(), "Saving the current round must succeed")
+	check(game.has_saved_game(), "The save file must be readable")
+	game.start_new_game()
+	check(game.has_saved_game(), "Starting a new game must not delete the saved game")
+	check(game.load_game(), "Loading the saved game must succeed")
+	check(game.level_num == 1 and game.score == 137, "Level and score must be restored")
+	check(game.remaining == 5 and game.cles == 2 and game.timer == 67, "Lives, keys and timer must be restored")
+	check(game.player_xy == Vector2i(4, 4) and game.screen[4][4] == 0x20, "Player position and changed map must be restored")
+	check(game.potap1.visible and game.potap1.position == Vector2(32, 32), "Sprite state must be restored")
+	check(game.game_mode == game.GM_ROUND and not paused, "Restored game must be running")
+
+	# A fresh scene can continue from the same file after the previous one exits.
+	var resumed = load("res://main.tscn").instantiate()
+	root.add_child(resumed)
+	resumed.set_process(false)
+	await process_frame
+	resumed.save_path = game.save_path
+	check(resumed.load_game(), "A fresh game instance must find the previous save")
+	check(resumed.score == 137 and resumed.player_xy == Vector2i(4, 4), "Continue must restore the previous position and score")
+	resumed.queue_free()
+	await process_frame
+
+	# Invalid saves are rejected without replacing the current state.
+	var invalid_file := FileAccess.open(game.save_path, FileAccess.WRITE)
+	invalid_file.store_string("{broken")
+	invalid_file.close()
+	var before_invalid_score: int = game.score
+	check(not game.load_game(), "Corrupt save data must be rejected")
+	check(game.score == before_invalid_score, "Corrupt save must not mutate the game")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(game.save_path))
+	game.save_path = old_path
+
+	# Reinitialize game before the movement, collection and enemy tests.
+	game.restart_game()
+	game.set_game_mode(game.GM_ROUND)
 
 	game.player_xy = Vector2i(4, 4)
 	game.jump = 1

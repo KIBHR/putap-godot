@@ -11,3 +11,17 @@ https://archive.org/details/msx-magazine-1987
 Transcribed to Godot, hopefully close to the original.
 
 Play it here: https://svofski.github.io/potap/
+
+## Controls and game saves (Godot 4.7.2)
+
+The Godot project in `godot/` includes a keyboard help screen (**H**),
+manual **save (F5)** / **load (F9)**, and a title-screen choice to
+**continue (C)** or **start a new game (Space/N)**. The save file
+(`user://potap-save.json`) stores the complete current level state.
+**Enter** toggles fullscreen, **Esc** exits, **P** pauses, and **M** toggles sound.
+For gameplay, use **left/right or A/D**, **down or S**, and **Space** to jump.
+
+**Note:** the checked-in `docs/potap.pck` is an older Web export. The new
+save/load functions require exporting the Godot project to Web again;
+HTML save/load buttons remain disabled until that rebuild is deployed.
+See [Godot project instructions](godot/README.md) for details.
