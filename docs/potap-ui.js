@@ -4,6 +4,7 @@
   const shell = document.getElementById("game-shell");
   const view = document.getElementById("game-view");
   const frame = document.getElementById("game-frame");
+  const toolbar = document.getElementById("game-toolbar");
   const canvas = document.getElementById("canvas");
   const stopped = document.getElementById("game-stopped");
   const windowButton = document.getElementById("window-mode");
@@ -15,7 +16,9 @@
 
   function resizeGame() {
     const usableWidth = Math.max(1, view.clientWidth - 24);
-    const usableHeight = Math.max(1, view.clientHeight - 24);
+    // Reserve matching space above and below for the bottom toolbar so
+    // the 256x256 playfield remains centered on the actual screen.
+    const usableHeight = Math.max(1, view.clientHeight - 2 * toolbar.offsetHeight - 24);
     const maxScale = Math.min(usableWidth, usableHeight) / GAME_PIXELS;
     const scale = maxScale >= 1 ? Math.floor(maxScale) : maxScale;
     const side = Math.max(1, Math.floor(GAME_PIXELS * scale));
