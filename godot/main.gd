@@ -1,5 +1,9 @@
 extends Node2D
 
+const SAVE_PATH := "user://potap-save.json"
+const SAVE_VERSION := 1
+var web_save_callbacks: Array = []
+
 @onready var tilemap: TileMapLayer = $TileMap
 @onready var potap1: AnimatedSprite2D = $Potap1
 @onready var potap2: AnimatedSprite2D = $Potap2
@@ -374,7 +378,11 @@ func title_screen():
 		print_at(0, y, q)
 		y += 1
 	
-	print_at(8, 17, "PUSH SPACE KEY")
+	print_at(5, 16, "SPACE - NEW GAME")
+	if has_saved_game():
+		print_at(5, 18, "C - CONTINUE GAME")
+	else:
+		print_at(6, 18, "H - CONTROLS")
 	print_at(2, 20, "MSX MAGAZINE & NEMOSOFT,1987")
 	print_at(10, 2, "HI %5d0" % hiscore)
 
@@ -570,6 +578,7 @@ func set_game_mode(newmode) -> void:
 		title_screen()
 	game_mode = newmode
 	state_frame_count = 0
+	_update_save_ui()
 
 func item_value(item: int) -> int:
 	match item:
@@ -763,6 +772,12 @@ func process_player():
 	pickup_stuff()
 
 # 4 = lemons, 7 = rats
+func start_new_game() -> void:
+	get_tree().paused = false
+	restart_game()
+	set_game_mode(GM_ROUND)
+
+
 func restart_game():
 	level_num = 1
 	score = 0
@@ -801,6 +816,264 @@ func win_game():
 		hide_sprites(true)
 		set_game_mode(GM_HISCORE)
 
+# Save only active rounds: dying, level-end animations and the victory
+# sequence are transient. Snapshots contain the complete tile screen and
+# sprite transforms, so collected fruit, keys and opened locks stay changed.
+func _capture_sprite(sprite: AnimatedSprite2D) -> Dictionary:
+	return {
+		"x": sprite.position.x, "y": sprite.position.y,
+		"frame": sprite.frame, "visible": sprite.visible,
+		"tint": sprite.self_modulate.to_html(true)
+	}
+
+
+func _apply_sprite(sprite: AnimatedSprite2D, data: Dictionary) -> void:
+	sprite.position = Vector2(float(data["x"]), float(data["y"]))
+	sprite.frame = int(data["frame"])
+	sprite.visible = bool(data["visible"])
+	sprite.self_modulate = Color.from_string(String(data["tint"]), Color.WHITE)
+
+
+func _save_snapshot() -> Dictionary:
+	return {
+		"version": SAVE_VERSION, "game_mode": GM_ROUND,
+		"level_num": level_num, "score": score, "score_step": score_step,
+		"hiscore": hiscore, "remaining": remaining, "nt_time": nt_time,
+		"timer": timer, "jump": jump, "jump_timer": jump_timer,
+		"cles": cles, "open_locks": open_locks,
+		"potap_rl": potap_rl, "potap_c3": potap_c3,
+		"k1k2": k1k2, "p1p2": p1p2,
+		"state_frame_count": state_frame_count,
+		"elapsed": elapsed, "elapsed_anim": elapsed_anim,
+		"player_xy": [player_xy.x, player_xy.y],
+		"exit_xy": [exit_xy.x, exit_xy.y],
+		"screen": screen.duplicate(true), "foe": foe.duplicate(true),
+		"level_foe": level_foe.duplicate(true),
+		"animations": animations.duplicate(true),
+		"rng_state": str(rng.state),
+		"sprites": [
+			_capture_sprite(potap1), _capture_sprite(potap2),
+			_capture_sprite(exitsprite), _capture_sprite(evil1),
+			_capture_sprite(evil2)
+		]
+	}
+
+
+func save_game() -> bool:
+	if game_mode != GM_ROUND:
+		return false
+	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if file == null:
+		push_warning("Cannot open save file: %s" % FileAccess.get_open_error())
+		return false
+	var ok: bool = file.store_string(JSON.stringify(_save_snapshot()))
+	file.close()
+	_update_save_ui("Сохранено" if ok else "Ошибка сохранения")
+	return ok
+
+
+func _is_save_valid(data: Variant) -> bool:
+	if typeof(data) != TYPE_DICTIONARY:
+		return false
+	var save: Dictionary = data
+	if save.get("version") != SAVE_VERSION or save.get("game_mode") != GM_ROUND:
+		return false
+	var numeric = [
+		"level_num", "score", "score_step", "hiscore", "remaining",
+		"nt_time", "timer", "jump", "jump_timer", "cles", "open_locks",
+		"potap_rl", "potap_c3", "k1k2", "p1p2", "state_frame_count",
+		"elapsed", "elapsed_anim"
+	]
+	for field in numeric:
+		if typeof(save.get(field)) not in [TYPE_INT, TYPE_FLOAT]:
+			return false
+	if int(save["level_num"]) < 1 or int(save["level_num"]) > 15:
+		return false
+	if int(save["remaining"]) < 0 or int(save["remaining"]) > 1000:
+		return false
+	if int(save["timer"]) < 0 or int(save["timer"]) > 281:
+		return false
+	if int(save["score"]) < 0 or int(save["score_step"]) < 0:
+		return false
+	for vector_name in ["player_xy", "exit_xy"]:
+		var coords = save.get(vector_name)
+		if typeof(coords) != TYPE_ARRAY or coords.size() != 2:
+			return false
+		for value in coords:
+			if typeof(value) not in [TYPE_INT, TYPE_FLOAT]:
+				return false
+	if int(save["player_xy"][0]) < 0 or int(save["player_xy"][0]) > 30:
+		return false
+	if int(save["player_xy"][1]) < 0 or int(save["player_xy"][1]) > 20:
+		return false
+	var saved_screen = save.get("screen")
+	if typeof(saved_screen) != TYPE_ARRAY or saved_screen.size() != 32:
+		return false
+	for row in saved_screen:
+		if typeof(row) != TYPE_ARRAY or row.size() != 32:
+			return false
+		for tile in row:
+			if typeof(tile) not in [TYPE_INT, TYPE_FLOAT] or int(tile) < 32 or int(tile) > 161:
+				return false
+	for name in ["foe", "level_foe"]:
+		var actors = save.get(name)
+		if typeof(actors) != TYPE_ARRAY or actors.size() != 3:
+			return false
+		for actor in actors:
+			if typeof(actor) != TYPE_ARRAY or actor.size() != 3:
+				return false
+			for coord in actor:
+				if typeof(coord) not in [TYPE_INT, TYPE_FLOAT]:
+					return false
+			if int(actor[0]) < 0 or int(actor[0]) >= foe_brain.size():
+				return false
+	var saved_animations = save.get("animations")
+	if typeof(saved_animations) != TYPE_ARRAY or saved_animations.size() != 2:
+		return false
+	for animation in saved_animations:
+		if typeof(animation) != TYPE_ARRAY or animation.size() < 1:
+			return false
+		for value in animation:
+			if typeof(value) not in [TYPE_INT, TYPE_FLOAT]:
+				return false
+	var saved_sprites = save.get("sprites")
+	if typeof(saved_sprites) != TYPE_ARRAY or saved_sprites.size() != 5:
+		return false
+	for sprite in saved_sprites:
+		if typeof(sprite) != TYPE_DICTIONARY:
+			return false
+		for prop in ["x", "y", "frame", "visible", "tint"]:
+			if not sprite.has(prop):
+				return false
+		if typeof(sprite["x"]) not in [TYPE_INT, TYPE_FLOAT] or typeof(sprite["y"]) not in [TYPE_INT, TYPE_FLOAT]:
+			return false
+		if typeof(sprite["frame"]) not in [TYPE_INT, TYPE_FLOAT] or int(sprite["frame"]) < 0 or int(sprite["frame"]) > 6:
+			return false
+		if typeof(sprite["visible"]) != TYPE_BOOL or typeof(sprite["tint"]) != TYPE_STRING:
+			return false
+	return typeof(save.get("rng_state")) == TYPE_STRING
+
+
+func _read_saved_game() -> Dictionary:
+	if not FileAccess.file_exists(SAVE_PATH):
+		return {}
+	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	if file == null:
+		return {}
+	var contents := file.get_as_text()
+	file.close()
+	var parsed: Variant = JSON.parse_string(contents)
+	return parsed if _is_save_valid(parsed) else {}
+
+
+func has_saved_game() -> bool:
+	return not _read_saved_game().is_empty()
+
+
+func load_game() -> bool:
+	var data := _read_saved_game()
+	if data.is_empty():
+		_update_save_ui("Сохранение отсутствует или повреждено")
+		return false
+	# Everything is validated above, before mutating the live state.
+	level_num = int(data["level_num"])
+	score = int(data["score"])
+	score_step = int(data["score_step"])
+	hiscore = int(data["hiscore"])
+	remaining = int(data["remaining"])
+	nt_time = int(data["nt_time"])
+	timer = int(data["timer"])
+	jump = int(data["jump"])
+	jump_timer = int(data["jump_timer"])
+	cles = int(data["cles"])
+	open_locks = int(data["open_locks"])
+	potap_rl = int(data["potap_rl"])
+	potap_c3 = int(data["potap_c3"])
+	k1k2 = int(data["k1k2"])
+	p1p2 = int(data["p1p2"])
+	state_frame_count = int(data["state_frame_count"])
+	elapsed = float(data["elapsed"])
+	elapsed_anim = float(data["elapsed_anim"])
+	player_xy = Vector2i(int(data["player_xy"][0]), int(data["player_xy"][1]))
+	exit_xy = Vector2i(int(data["exit_xy"][0]), int(data["exit_xy"][1]))
+	screen.clear()
+	for row in data["screen"]:
+		var tiles: Array = []
+		for tile in row:
+			tiles.append(int(tile))
+		screen.append(tiles)
+	foe = _restore_triples(data["foe"])
+	level_foe = _restore_triples(data["level_foe"])
+	animations.clear()
+	for animation in data["animations"]:
+		var steps: Array = []
+		for item in animation:
+			steps.append(int(item))
+		animations.append(steps)
+	rng.state = int(data["rng_state"])
+	for voice in playnik.voices:
+		voice.queue.clear()
+	get_tree().paused = false
+	game_mode = GM_ROUND
+	stick = [false, false, false, false, false]
+	flush_screen()
+	var sprites = [potap1, potap2, exitsprite, evil1, evil2]
+	for i in sprites.size():
+		_apply_sprite(sprites[i], data["sprites"][i])
+	_update_save_ui("Игра загружена")
+	return true
+
+
+func _restore_triples(source: Array) -> Array:
+	var result: Array = []
+	for triple in source:
+		result.append([int(triple[0]), int(triple[1]), int(triple[2])])
+	return result
+
+
+func _update_save_ui(message: String = "") -> void:
+	if has_node("WindowControls"):
+		var controls = get_node("WindowControls")
+		if controls.has_method("refresh_save_menu"):
+			controls.refresh_save_menu(message)
+	if OS.has_feature("web"):
+		var web_info = {
+			"ready": true, "has_save": has_saved_game(),
+			"at_title": game_mode == GM_TITLE,
+			"can_save": game_mode == GM_ROUND, "message": message
+		}
+		JavaScriptBridge.eval("window.potapSaveState = " + JSON.stringify(web_info) + "; if (window.potapUpdateSaveControls) window.potapUpdateSaveControls();", true)
+
+
+func _register_web_save_api() -> void:
+	if not OS.has_feature("web"):
+		return
+	var browser = JavaScriptBridge.get_interface("window")
+	var actions := {
+		"potap-save": Callable(self, "_web_save"),
+		"potap-load": Callable(self, "_web_load"),
+		"potap-continue": Callable(self, "_web_load"),
+		"potap-new": Callable(self, "_web_new")
+	}
+	for action in actions.keys():
+		var callback = JavaScriptBridge.create_callback(actions[action])
+		web_save_callbacks.append(callback) # prevent GC of JS callbacks
+		browser.addEventListener(action, callback)
+	JavaScriptBridge.eval("window.potapBridgeReady = true;", true)
+
+
+func _web_save(_args: Array) -> void:
+	save_game()
+
+
+func _web_load(_args: Array) -> void:
+	load_game()
+
+
+func _web_new(_args: Array) -> void:
+	start_new_game()
+
+
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	rng = RandomNumberGenerator.new()
@@ -812,6 +1085,8 @@ func _ready():
 	hide_sprites(true)
 	set_game_mode(GM_TITLE)
 	flush_screen()
+	_register_web_save_api()
+	_update_save_ui()
 	
 	# hax to win screen
 	if false:
@@ -852,8 +1127,7 @@ func _process(delta):
 	match game_mode:
 		GM_TITLE:
 			if trigger():
-				restart_game()
-				set_game_mode(GM_ROUND)
+				start_new_game()
 		GM_ROUND:
 			process_foe(1 + (state_frame_count % 2))
 			process_player()
