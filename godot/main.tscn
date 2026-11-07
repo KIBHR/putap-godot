@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://ch0vgleq8ddwo" path="res://main.gd" id="2"]
 [ext_resource type="Texture2D" uid="uid://dn2yelnykflpw" path="res://assets/putup-sprites.png" id="3"]
 [ext_resource type="PackedScene" path="res://Play.tscn" id="4"]
+[ext_resource type="Script" path="res://WindowControls.gd" id="5"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_tiles"]
 texture = ExtResource("1")
@@ -400,3 +401,6 @@ self_modulate = Color(0, 0, 0, 1)
 position = Vector2(23, 80)
 sprite_frames = SubResource("21")
 centered = false
+
+[node name="WindowControls" type="CanvasLayer" parent="."]
+script = ExtResource("5")
