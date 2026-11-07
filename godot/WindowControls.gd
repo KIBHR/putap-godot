@@ -38,7 +38,7 @@ func _set_windowed() -> void:
 	var window := get_window()
 	window.mode = Window.MODE_WINDOWED
 	window.size = Vector2i(768, 768)
-	window.move_to_center()
+	call_deferred("_center_window")
 
 
 func _set_fullscreen() -> void:
