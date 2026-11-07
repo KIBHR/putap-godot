@@ -51,6 +51,24 @@ func run() -> void:
 		check(button.focus_mode == Control.FOCUS_NONE, "Window button %s must not steal arrows or Space" % caption)
 	test_toolbar.free()
 
+	# Pausing freezes the SceneTree, and the controls can still unpause it.
+	check(controls.process_mode == Node.PROCESS_MODE_ALWAYS, "Controls must process while paused")
+	check(not paused, "SceneTree should start unpaused")
+	controls._toggle_pause()
+	check(paused, "Pause button must pause the game")
+	controls._toggle_pause()
+	check(not paused, "Pressing pause again must resume the game")
+
+	# Sound toggle must affect the actual Master output and be reversible.
+	var master_bus := AudioServer.get_bus_index("Master")
+	if master_bus >= 0:
+		var initially_muted := AudioServer.is_bus_mute(master_bus)
+		controls._toggle_sound()
+		check(AudioServer.is_bus_mute(master_bus) != initially_muted, "Sound button must toggle Master mute")
+		controls._toggle_sound()
+		check(AudioServer.is_bus_mute(master_bus) == initially_muted, "Sound button must restore Master mute")
+
+
 	check(game.tilemap.get_used_cells().size() == 1024, "The complete screen must render on startup")
 	check(game.playnik.playback != null and game.playnik.player.playing, "Procedural audio must start")
 	check(load("res://default_env.tres") is Environment, "The migrated environment must load")
