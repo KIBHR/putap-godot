@@ -305,11 +305,11 @@
       event.preventDefault();
       event.stopPropagation();
       closeGame();
-    } else if (event.key.toLowerCase() === "p") {
+    } else if (event.code === "KeyP" || event.key.toLowerCase() === "p") {
       event.preventDefault();
       event.stopPropagation();
       togglePause();
-    } else if (event.key.toLowerCase() === "m") {
+    } else if (event.code === "KeyM" || event.key.toLowerCase() === "m") {
       event.preventDefault();
       event.stopPropagation();
       toggleAudio();
