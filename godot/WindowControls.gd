@@ -7,7 +7,8 @@ var status_label: Label
 
 
 func _ready() -> void:
-	if OS.has_feature("web"):
+	# No native window controls are needed in browser exports or headless tests.
+	if OS.has_feature("web") or DisplayServer.get_name() == "headless":
 		return
 
 	status_label = Label.new()
